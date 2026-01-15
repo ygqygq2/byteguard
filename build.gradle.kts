@@ -2,6 +2,10 @@ plugins {
     java
     `maven-publish`
     signing
+    id("jacoco")
+    id("org.sonarqube") version "4.4.1.3373" apply false
+    id("com.github.spotbugs") version "6.0.4" apply false
+    id("checkstyle") apply false
 }
 
 group = "io.github.ygqygq2"
@@ -13,6 +17,9 @@ allprojects {
     }
 }
 
+    apply(plugin = "jacoco")
+    apply(plugin = "checkstyle")
+    apply(plugin = "com.github.spotbugs")
 subprojects {
     apply(plugin = "java")
     apply(plugin = "maven-publish")
@@ -31,7 +38,38 @@ subprojects {
     tasks.withType<JavaCompile> {
         options.encoding = "UTF-8"
     }
+    finalizedBy(tasks.jacocoTestReport)
+    }
 
+    tasks.jacocoTestReport {
+        dependsOn(tasks.test)
+        reports {
+            xml.required.set(true)
+            html.required.set(true)
+        }
+    }
+
+    tasks.jacocoTestCoverageVerification {
+        violationRules {
+            rule {
+                limit {
+                    minimum = "0.80".toBigDecimal()
+                }
+            }
+        }
+    }
+
+    checkstyle {
+        toolVersion = "10.12.5"
+        configFile = rootProject.file("config/checkstyle/checkstyle.xml")
+        isIgnoreFailures = false
+    }
+
+    tasks.withType<com.github.spotbugs.snom.SpotBugsTask> {
+        reports.create("html") {
+            required.set(true)
+        }
+    
     tasks.withType<Test> {
         useJUnitPlatform()
     }
