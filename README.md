@@ -2,7 +2,9 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Java](https://img.shields.io/badge/Java-8%2B-brightgreen.svg)](https://www.oracle.com/java/)
-[![Gradle](https://img.shields.io/badge/Gradle-8.5-blue.svg)](https://gradle.org/)
+[![Gradle](https://img.shields.io/badge/Gradle-8.11-blue.svg)](https://gradle.org/)
+[![Build Status](https://github.com/ygqygq2/byteguard/workflows/Build%20and%20Test/badge.svg)](https://github.com/ygqygq2/byteguard/actions)
+[![codecov](https://codecov.io/gh/ygqygy2/byteguard/branch/main/graph/badge.svg)](https://codecov.io/gh/ygqygq2/byteguard)
 
 > Modern Java bytecode encryption with 100% Lambda support and military-grade security.
 
