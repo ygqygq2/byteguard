@@ -26,37 +26,37 @@ jobs:
       id: get_version
       run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
     - name: Build with Gradle
-      run: ./gradlew build -Pversion=${{ steps.get_version.outputs.VERSION }}
+      run: ./gradlew build -Pversion=${{ steps.get_version.outputs.VERSION }} --no-daemon
 
     - name: Build Fat JAR
-      run: ./gradlew :byteguard-cli:shadowJar -Pversion=${{ steps.get_version.outputs.VERSION }}
+      run: ./gradlew :byteguard-cli:shadowJar -Pversion=${{ steps.get_version.outputs.VERSION }} --no-daemon
 
     - name: Run tests
-      run: ./gradlew test
+      run: ./gradlew test --no-daemon
 
-    - name: Generate Changelog
-      id: changelog
-      uses: mikepenz/release-changelog-builder-action@v4
-      with:
-        configuration: ".github/changelog-config.json"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Extract Changelog
+      run: |
+        # 使用 awk 命令提取最新的版本记录
+        cat CHANGELOG.md | awk '/^## \[/ {if (flag) exit; flag=1} flag {print}' > body.md
+        cat body.md
 
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+    - name: Publish release
+      uses: ncipollo/release-action@v1
       with:
         name: ByteGuard ${{ steps.get_version.outputs.VERSION }}
-        body: ${{ steps.changelog.outputs.changelog }}
+        bodyFile: 'body.md'
         draft: false
         prerelease: false
-        files: |
+        artifacts: |
           byteguard-cli/build/libs/byteguard-cli-${{ steps.get_version.outputs.VERSION }}.jar
           byteguard-cli/build/libs/byteguard-cli-${{ steps.get_version.outputs.VERSION }}-all.jar
           byteguard-core/build/libs/byteguard-core-${{ steps.get_version.outputs.VERSION }}.jar
           byteguard-maven-plugin/build/libs/byteguard-maven-plugin-${{ steps.get_version.outputs.VERSION }}.jar
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN }}
 
   publish-maven-central:
     runs-on: ubuntu-latest
@@ -76,6 +76,9 @@ jobs:
     - name: Extract version from tag
       id: get_version
       run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
 
     - name: Import GPG key
       uses: crazy-max/ghaction-import-gpg@v6
