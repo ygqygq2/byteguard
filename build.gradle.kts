@@ -2,6 +2,9 @@ plugins {
     java
     `maven-publish`
     signing
+    id("jacoco")
+    id("org.sonarqube") version "4.4.1.3373" apply false
+    id("com.github.spotbugs") version "6.0.4" apply false
 }
 
 group = "io.github.ygqygq2"
@@ -17,13 +20,14 @@ subprojects {
     apply(plugin = "java")
     apply(plugin = "maven-publish")
     apply(plugin = "signing")
+    apply(plugin = "jacoco")
 
     group = rootProject.group
     version = rootProject.version
 
     java {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
         withSourcesJar()
         withJavadocJar()
     }
@@ -32,12 +36,55 @@ subprojects {
         options.encoding = "UTF-8"
     }
 
-    tasks.withType<Test> {
+    tasks.test {
         useJUnitPlatform()
+        finalizedBy(tasks.jacocoTestReport)
+    }
+
+    // Register integration test task
+    val integrationTest by tasks.registering(Test::class) {
+        description = "Runs integration tests"
+        group = "verification"
+        
+        useJUnitPlatform {
+            includeTags("integration")
+        }
+        
+        testClassesDirs = sourceSets["test"].output.classesDirs
+        classpath = sourceSets["test"].runtimeClasspath
+        
+        shouldRunAfter(tasks.test)
+    }
+    
+    tasks.check {
+        dependsOn(integrationTest)
+    }
+
+    tasks.jacocoTestReport {
+        dependsOn(tasks.test)
+        reports {
+            xml.required.set(true)
+            html.required.set(true)
+        }
+    }
+
+    tasks.jacocoTestCoverageVerification {
+        violationRules {
+            rule {
+                limit {
+                    minimum = "0.80".toBigDecimal()
+                }
+            }
+        }
+    }
+
+    tasks.withType<com.github.spotbugs.snom.SpotBugsTask> {
+        reports.create("html") {
+            required.set(true)
+        }
     }
 
     dependencies {
-        // Common test dependencies
         testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
         testImplementation("org.assertj:assertj-core:3.24.2")
         testImplementation("org.mockito:mockito-core:5.8.0")

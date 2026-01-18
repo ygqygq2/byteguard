@@ -5,6 +5,10 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+# 测试缓存目录（不被版本管理）
+.testcache/
+.test-apps/
+
 # Maven (for maven-plugin module)
 target/
 pom.xml.tag
@@ -44,6 +48,12 @@ replay_pid*
 .DS_Store
 Thumbs.db
 
+# Private keys (NEVER commit!)
+**/keys/*private*
+**/keys/*.key
+**/keys/*secret*
+*.pem.private
+
 # Test
 *.tmp
 temp/
@@ -52,3 +62,6 @@ test-output/
 # Encryption test files
 *.encrypted.jar
 encrypted-*/
+
+# Turbo AI Rules - Auto-generated files
+.github/copilot-instructions.md

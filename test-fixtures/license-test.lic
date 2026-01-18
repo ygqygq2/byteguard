@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "licenseId": "LIC-4DE961AB",
+  "licenseType": "ENTERPRISE",
+  "issuedTo": "Test Company",
+  "issuedAt": "2026-01-16T11:57:42.637627994Z",
+  "expireAt": "2027-12-30T16:00:00Z",
+  "authorization": {
+    "maxInstances": 0,
+    "features": ["FULL"],
+    "bindingMode": "NONE",
+    "allowedMachineIds": []
+  },
+  "signature": "HjMNCD/07HZlHTKGpaGNLWIZhbVijcVTTh+YMybU+RdE2BCAKGbVhNLuOcMPqkLJXIDkgdVE2hKWtzbStIsInD9nRlA1e/WQ6zBkEbzD9SEX8PnnzkpiuEMQ4mR3FGmFFHGHAYRHtONSheocOCT5xlQJXI/pWMpPW/2x9UwPtp2EUkuoVAvJmULe5HIDs5CGBKjd0QkuZaY7jVXbxP40guJe2ILqoNKQf5KSQqDW39DibdFW4Y/SOnkFZ7PSOMGSGn3xausuT6hudHmDpyXyrFKn1uhtAwjoJBH1CS21aQ5/x8BwN/7YQRAHcdDbc5WA0597EbSam9kfY3EC6o2k5g=="
+}

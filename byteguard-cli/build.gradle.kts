@@ -12,12 +12,7 @@ application {
 dependencies {
     implementation(project(":byteguard-core"))
     
-    // Picocli for CLI argument parsing
-    implementation("info.picocli:picocli:4.7.5")
-    annotationProcessor("info.picocli:picocli-codegen:4.7.5")
-    
-    // SLF4J simple implementation (for CLI)
-    implementation("org.slf4j:slf4j-simple:2.0.9")
+    // 零外部依赖 - 纯手工参数解析
 }
 
 tasks.jar {
@@ -36,12 +31,11 @@ tasks.jar {
     // Create fat JAR with all dependencies
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
-tasks.register<JavaExec>("runEncrypt") {
-    group = "application"
-    description = "Run encryption example"
-    classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("io.github.ygqygq2.byteguard.cli.Main")
-    args("encrypt", "--help")
+    
+    // 排除签名文件以避免签名冲突（Bouncy Castle 等库会有签名）
+    exclude("META-INF/*.SF")
+    exclude("META-INF/*.DSA")
+    exclude("META-INF/*.RSA")
+    exclude("META-INF/LICENSE*")
+    exclude("META-INF/NOTICE*")
 }
