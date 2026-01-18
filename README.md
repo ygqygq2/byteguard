@@ -165,7 +165,7 @@ ByteGuard 开源版本提供核心加密功能。企业级增强请参考：
 - **ByteGuard Website**: 在线加密服务、用户管理
 - **License Server**: GPG License 管理、机器绑定
 
-联系: [contact@example.com](mailto:contact@example.com)
+联系: [ygqygq2@qq.com](mailto:ygqygq2@qq.com)
 
 ## 🤝 贡献
 
