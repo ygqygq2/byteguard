@@ -1,0 +1,28 @@
+# Build outputs
+build/
+!byteguard-cli/build/libs/byteguard-cli-1.0.0-SNAPSHOT.jar
+.gradle/
+*.class
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Tests
+**/src/test/
+test-fixtures/
+
+# Temporary files
+*.log
+*.tmp
+.DS_Store
