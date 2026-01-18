@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "licenseId": "LIC-F8FFF6F4",
+  "licenseType": "STANDARD",
+  "issuedTo": "Test User",
+  "issuedAt": "2026-01-18T03:40:20.343358950Z",
+  "expireAt": null,
+  "authorization": {
+    "maxInstances": 0,
+    "features": ["FULL"],
+    "bindingMode": "NONE",
+    "allowedMachineIds": []
+  },
+  "signature": "W5Zr8wiKKkAqSQghNzjcEY0BB5KUkkkGkZjf9qR4/ZH13acJTZX7zGGSZceLCMnuA3DzqI8PM3E5OL39UDwvfYpq9lBV/7u80sEDRE5rnY3vUi7leJK5Kh0QxeGIO7+hZYuGIbjOoH79BK2P5kFxDmgcAysVXz5nKw1/+TY7/L9NldLaehmeggaWJNiyBEw6Nuagyxtw17bQZF+5rN/fx5l676xgF4W67hAkHYgadqJbaPCfialxTp/QSNcMGZa0V8eRL4Z5C9hgHWwWZCIt4xW4HnpDJXtcpKg1H/IALUxPUNXsMS1itMIafXHj9ZJc3rT4V7KMXKrpXdqxcCromQ=="
+}
