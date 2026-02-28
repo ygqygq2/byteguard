@@ -8,14 +8,18 @@ import io.github.ygqygq2.byteguard.core.license.LicenseValidator;
 import io.github.ygqygq2.byteguard.core.license.GPGLicenseValidator;
 import io.github.ygqygq2.byteguard.core.license.PublicKeyLoader;
 import io.github.ygqygq2.byteguard.core.loader.ClassDecryptor;
+import io.github.ygqygq2.byteguard.core.loader.MetadataReader;
+import io.github.ygqygq2.byteguard.core.model.EncryptionMetadata;
 
-import java.io.*;
+import java.io.File;
+import java.io.InputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.nio.file.Files;
 import java.security.ProtectionDomain;
 import java.security.PublicKey;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -36,11 +40,11 @@ public class ByteGuardAgent {
      */
     public static void premain(String agentArgs, Instrumentation inst) {
         System.out.println("[ByteGuard] Starting ByteGuard Agent...");
-        
+
         try {
             // 1. 解析参数
             AgentConfig config = parseAgentArgs(agentArgs);
-            
+
             // 2. 查找并验证 License
             license = loadAndValidateLicense(config);
             System.out.println("[ByteGuard] License validated successfully");
@@ -50,34 +54,32 @@ public class ByteGuardAgent {
             if (license.getExpireAt() != null) {
                 System.out.println("  - Expires at: " + license.getExpireAt());
             }
-            
-            // 3. 查找加密的 JAR 并读取元数据
+
+            // 3. 查找加密的 JAR 并读取元数据（使用核心 MetadataReader）
             EncryptionMetadata metadata = loadMetadata();
             if (metadata != null) {
-                System.out.println("[ByteGuard] Found encrypted JAR with " + metadata.totalClasses + " classes");
+                System.out.println("[ByteGuard] Found encrypted JAR with " + metadata.getTotalClasses() + " classes");
             }
-            
+
             // 4. 初始化解密器
-            byte[] salt = metadata != null ? metadata.salt : new KeyDerivation().generateSalt();
+            byte[] salt = metadata != null ? metadata.getSalt() : new KeyDerivation().generateSalt();
             KeyDerivation keyDerivation = new KeyDerivation();
             byte[] masterKey = keyDerivation.deriveMasterKey(config.password, salt);
-            
+
             decryptor = new ClassDecryptor(masterKey);
             System.out.println("[ByteGuard] Decryption engine initialized");
-            
+
             // 5. 注册 ClassFileTransformer
-            if (metadata != null && metadata.encryptedClasses != null) {
-                ByteGuardTransformer transformer = new ByteGuardTransformer(
-                    decryptor, 
-                    metadata.encryptedClasses,
-                    metadata.jarFile
-                );
+            if (metadata != null && !metadata.getClasses().isEmpty()) {
+                // 从 classes 字段构建加密类名集合（类路径 → 点分类名）
+                Set<String> encryptedClassNames = buildEncryptedClassNames(metadata);
+                ByteGuardTransformer transformer = new ByteGuardTransformer(decryptor, encryptedClassNames);
                 inst.addTransformer(transformer);
-                System.out.println("[ByteGuard] ClassFileTransformer registered");
+                System.out.println("[ByteGuard] ClassFileTransformer registered for " + encryptedClassNames.size() + " classes");
             }
-            
+
             System.out.println("[ByteGuard] Agent initialized successfully");
-            
+
         } catch (Exception e) {
             System.err.println("[ByteGuard] Failed to initialize agent: " + e.getMessage());
             e.printStackTrace();
@@ -236,164 +238,94 @@ public class ByteGuardAgent {
     }
     
     /**
-     * 加载加密元数据
+     * 从 classpath 中的 JAR 读取加密元数据
+     *
+     * <p>使用核心 {@link MetadataReader} 解析，路径固定为
+     * {@link EncryptionMetadata#METADATA_PATH}。
      */
     private static EncryptionMetadata loadMetadata() {
         try {
-            // 查找包含加密元数据的 JAR
             String classpath = System.getProperty("java.class.path");
             String[] jars = classpath.split(File.pathSeparator);
-            
+
             for (String jarPath : jars) {
                 File jarFile = new File(jarPath);
                 if (!jarFile.exists() || !jarFile.getName().endsWith(".jar")) {
                     continue;
                 }
-                
+
                 try (JarFile jar = new JarFile(jarFile)) {
-                    JarEntry metadataEntry = jar.getJarEntry("META-INF/.byteguard/metadata.json");
+                    JarEntry metadataEntry = jar.getJarEntry(EncryptionMetadata.METADATA_PATH);
                     if (metadataEntry == null) {
                         continue;
                     }
-                    
-                    // 读取元数据
-                    try (InputStream is = jar.getInputStream(metadataEntry);
-                         BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-                        
-                        StringBuilder json = new StringBuilder();
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            json.append(line);
-                        }
-                        
-                        return parseMetadata(json.toString(), jarFile);
+
+                    // 使用核心 MetadataReader 解析元数据
+                    try (InputStream is = jar.getInputStream(metadataEntry)) {
+                        MetadataReader reader = new MetadataReader();
+                        EncryptionMetadata metadata = reader.read(is);
+                        System.out.println("[ByteGuard] Loaded metadata from: " + jarFile.getName());
+                        return metadata;
                     }
                 }
             }
         } catch (Exception e) {
             System.err.println("[ByteGuard] Warning: Failed to load metadata: " + e.getMessage());
         }
-        
+
         return null;
     }
-    
+
     /**
-     * 解析元数据 JSON
+     * 从加密元数据构建类名集合
+     *
+     * <p>元数据中的 {@code classes} 字段存储类路径（如 {@code com/example/Main.class}），
+     * 转换为点分类名（如 {@code com.example.Main}）供 ClassFileTransformer 使用。
      */
-    private static EncryptionMetadata parseMetadata(String json, File jarFile) {
-        EncryptionMetadata metadata = new EncryptionMetadata();
-        metadata.jarFile = jarFile;
-        
-        // 简单 JSON 解析
-        String saltStr = extractJsonString(json, "salt");
-        if (saltStr != null) {
-            metadata.salt = Base64.getDecoder().decode(saltStr);
+    private static Set<String> buildEncryptedClassNames(EncryptionMetadata metadata) {
+        Set<String> classNames = new HashSet<>();
+        for (String classPath : metadata.getClasses().keySet()) {
+            // com/example/Main.class → com.example.Main
+            String className = classPath.substring(0, classPath.length() - 6).replace('/', '.');
+            classNames.add(className);
         }
-        
-        String totalClassesStr = extractJsonNumber(json, "totalClasses");
-        if (totalClassesStr != null) {
-            metadata.totalClasses = Integer.parseInt(totalClassesStr);
-        }
-        
-        // 解析加密类映射
-        metadata.encryptedClasses = new HashMap<>();
-        String classesBlock = extractJsonObject(json, "encryptedClasses");
-        if (classesBlock != null) {
-            parseEncryptedClasses(classesBlock, metadata.encryptedClasses);
-        }
-        
-        return metadata;
+        return classNames;
     }
-    
-    private static String extractJsonString(String json, String key) {
-        String pattern = "\"" + key + "\"\\s*:\\s*\"([^\"]*)\"";
-        java.util.regex.Pattern p = java.util.regex.Pattern.compile(pattern);
-        java.util.regex.Matcher m = p.matcher(json);
-        return m.find() ? m.group(1) : null;
-    }
-    
-    private static String extractJsonNumber(String json, String key) {
-        String pattern = "\"" + key + "\"\\s*:\\s*(\\d+)";
-        java.util.regex.Pattern p = java.util.regex.Pattern.compile(pattern);
-        java.util.regex.Matcher m = p.matcher(json);
-        return m.find() ? m.group(1) : null;
-    }
-    
-    private static String extractJsonObject(String json, String key) {
-        int start = json.indexOf("\"" + key + "\"");
-        if (start == -1) return null;
-        
-        start = json.indexOf("{", start);
-        int braceCount = 1;
-        int end = start + 1;
-        
-        while (braceCount > 0 && end < json.length()) {
-            char c = json.charAt(end);
-            if (c == '{') braceCount++;
-            else if (c == '}') braceCount--;
-            end++;
-        }
-        
-        return json.substring(start, end);
-    }
-    
-    private static void parseEncryptedClasses(String json, Map<String, String> map) {
-        // 提取所有类名和加密路径
-        String pattern = "\"([^\"]+)\"\\s*:\\s*\\{[^}]*\"encryptedPath\"\\s*:\\s*\"([^\"]*)\"";
-        java.util.regex.Pattern p = java.util.regex.Pattern.compile(pattern);
-        java.util.regex.Matcher m = p.matcher(json);
-        
-        while (m.find()) {
-            String className = m.group(1);
-            String encryptedPath = m.group(2);
-            map.put(className, encryptedPath);
-        }
-    }
-    
-    /**
-     * 加密元数据
-     */
-    private static class EncryptionMetadata {
-        File jarFile;
-        byte[] salt;
-        int totalClasses;
-        Map<String, String> encryptedClasses; // className -> encryptedPath
-    }
-    
+
     /**
      * ClassFileTransformer - 拦截类加载并解密
+     *
+     * <p>加密 JAR 中，加密字节位于原始类路径，JVM 加载时会传入加密的
+     * {@code classfileBuffer}，Transformer 解密后返回正确的字节码。
      */
     private static class ByteGuardTransformer implements ClassFileTransformer {
-        
+
         private final ClassDecryptor decryptor;
-        private final Map<String, String> encryptedClasses;
-        private final File jarFile;
-        
-        ByteGuardTransformer(ClassDecryptor decryptor, Map<String, String> encryptedClasses, File jarFile) {
+        private final Set<String> encryptedClassNames; // 加密类的点分类名集合
+
+        ByteGuardTransformer(ClassDecryptor decryptor, Set<String> encryptedClassNames) {
             this.decryptor = decryptor;
-            this.encryptedClasses = encryptedClasses;
-            this.jarFile = jarFile;
+            this.encryptedClassNames = encryptedClassNames;
         }
-        
+
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
                                 ProtectionDomain protectionDomain, byte[] classfileBuffer) {
-            
-            // 转换类名格式: com/example/MyClass -> com.example.MyClass
+
+            // 转换类名格式: com/example/MyClass → com.example.MyClass
             String dottedClassName = className != null ? className.replace('/', '.') : null;
-            
+
             // 检查是否是加密的类
-            if (dottedClassName == null || !encryptedClasses.containsKey(dottedClassName)) {
+            if (dottedClassName == null || !encryptedClassNames.contains(dottedClassName)) {
                 return null; // 不修改
             }
-            
+
             try {
-                // classfileBuffer 本身就是加密的字节码（因为我们把加密数据写到原始位置）
-                // 直接解密即可
+                // classfileBuffer 就是加密的字节码（加密字节写到了原始类路径）
                 byte[] decrypted = decryptor.decrypt(dottedClassName, classfileBuffer);
                 System.out.println("[ByteGuard] Decrypted class: " + dottedClassName);
                 return decrypted;
-                
+
             } catch (Exception e) {
                 System.err.println("[ByteGuard] Failed to decrypt class " + dottedClassName + ": " + e.getMessage());
                 e.printStackTrace();

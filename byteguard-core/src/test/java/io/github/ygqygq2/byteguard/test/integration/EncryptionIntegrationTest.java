@@ -23,7 +23,8 @@ public class EncryptionIntegrationTest {
     private KeyDerivation keyDerivation;
     
     private static final String ARTHAS_DOWNLOAD_URL = "https://arthas.aliyun.com/arthas-boot.jar";
-    private static final String TEST_APPS_CACHE = ".test-apps";
+    // 相对于项目根目录（byteguard/），测试工作目录为 byteguard-core/，所以用 ../
+    private static final String TEST_APPS_CACHE = "../.test-apps";
 
     @BeforeEach
     @DisplayName("初始化加密模块")
@@ -155,7 +156,7 @@ public class EncryptionIntegrationTest {
         }
         
         // 5. 使用预生成的测试 License 文件（由 byteguard-license-server 生成）
-        Path licenseFile = Paths.get(".test-apps/test-integration.lic");
+        Path licenseFile = Paths.get(TEST_APPS_CACHE + "/test-integration.lic");
         assertTrue(Files.exists(licenseFile), 
             "测试 License 应该存在: " + licenseFile.toAbsolutePath() +
             "\n请运行: cd ../byteguard-license-server && ./bin/license-generator -type TRIAL -to 'Integration Test' -days 365 -output ../byteguard/.test-apps/test-integration.lic");

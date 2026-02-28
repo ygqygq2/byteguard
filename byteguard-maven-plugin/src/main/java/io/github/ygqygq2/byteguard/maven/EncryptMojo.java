@@ -1,5 +1,9 @@
-package io.github.ygqygy2.byteguard.maven;
+package io.github.ygqygq2.byteguard.maven;
 
+import io.github.ygqygq2.byteguard.core.crypto.CryptoException;
+import io.github.ygqygq2.byteguard.core.encryptor.JarEncryptor;
+import io.github.ygqygq2.byteguard.core.model.EncryptionConfig;
+import io.github.ygqygq2.byteguard.core.model.EncryptionMetadata;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -9,6 +13,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 
@@ -107,7 +112,7 @@ public class EncryptMojo extends AbstractMojo {
                 getLog().info("  Excludes: " + String.join(", ", excludes));
             }
             
-            // 4. 调用加密逻辑（TODO: 实现）
+            // 4. 调用加密逻辑
             encryptJar(inputJar, outputJar);
             
             // 5. 替换原始文件（如果配置）
@@ -155,28 +160,32 @@ public class EncryptMojo extends AbstractMojo {
     }
     
     /**
-     * 执行加密
-     * 
-     * TODO: 集成 byteguard-core 加密逻辑
+     * 执行加密 - 使用 byteguard-core JarEncryptor
      */
-    private void encryptJar(File input, File output) throws Exception {
-        getLog().warn("Encryption logic not yet implemented - copying file as placeholder");
-        
-        // TODO: 替换为实际加密逻辑
-        // ClassEncryptor encryptor = new ClassEncryptor(password);
-        // if (packages != null) {
-        //     for (String pkg : packages) {
-        //         encryptor.addPackage(pkg);
-        //     }
-        // }
-        // if (excludes != null) {
-        //     for (String exclude : excludes) {
-        //         encryptor.addExclude(exclude);
-        //     }
-        // }
-        // encryptor.encrypt(input, output);
-        
-        // 临时实现：复制文件
-        Files.copy(input.toPath(), output.toPath());
+    private void encryptJar(File input, File output) throws IOException, CryptoException {
+        // 构建加密配置
+        EncryptionConfig.Builder configBuilder = EncryptionConfig.builder();
+
+        if (packages != null) {
+            for (String pkg : packages) {
+                if (pkg != null && !pkg.isBlank()) {
+                    configBuilder.includePackage(pkg.trim());
+                }
+            }
+        }
+        if (excludes != null) {
+            for (String exc : excludes) {
+                if (exc != null && !exc.isBlank()) {
+                    configBuilder.excludePackage(exc.trim());
+                }
+            }
+        }
+        EncryptionConfig config = configBuilder.build();
+
+        JarEncryptor encryptor = new JarEncryptor(password, config);
+        EncryptionMetadata metadata = encryptor.encrypt(input.toPath(), output.toPath());
+
+        getLog().info("  Classes encrypted: " + metadata.getTotalClasses());
+        getLog().info("  Algorithm: " + metadata.getAlgorithm());
     }
 }
