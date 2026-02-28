@@ -40,8 +40,8 @@ jobs:
       with:
         languages: ${{ matrix.language }}
 
-    - name: Build project
-      run: ./gradlew clean build -x test --no-daemon
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v4
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
