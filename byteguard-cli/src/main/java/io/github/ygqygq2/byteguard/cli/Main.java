@@ -1,7 +1,10 @@
 package io.github.ygqygq2.byteguard.cli;
 
+import io.github.ygqygq2.byteguard.cli.command.AnalyzeCommand;
 import io.github.ygqygq2.byteguard.cli.command.EncryptCommand;
 import io.github.ygqygq2.byteguard.cli.command.LicenseCommand;
+import io.github.ygqygq2.byteguard.cli.command.VerifyCommand;
+import io.github.ygqygq2.byteguard.cli.command.VersionCommand;
 
 /**
  * CLI 主入口
@@ -25,17 +28,31 @@ public class Main {
                 case "encrypt":
                     new EncryptCommand().execute(commandArgs);
                     break;
-                    
+
+                case "verify":
+                    new VerifyCommand().execute(commandArgs);
+                    break;
+
+                case "analyze":
+                    new AnalyzeCommand().execute(commandArgs);
+                    break;
+
+                case "version":
+                case "--version":
+                case "-V":
+                    new VersionCommand().execute(commandArgs);
+                    break;
+
                 case "license":
                     new LicenseCommand().execute(commandArgs);
                     break;
-                    
+
                 case "help":
                 case "--help":
                 case "-h":
                     printUsage();
                     break;
-                    
+
                 default:
                     System.err.println("Unknown command: " + command);
                     printUsage();
@@ -55,6 +72,9 @@ public class Main {
         System.out.println();
         System.out.println("Commands:");
         System.out.println("  encrypt    Encrypt a JAR file");
+        System.out.println("  verify     Verify an encrypted JAR (check integrity + password)");
+        System.out.println("  analyze    Analyze a JAR (preview which classes will be encrypted)");
+        System.out.println("  version    Show version information");
         System.out.println("  license    Generate or manage licenses");
         System.out.println("  help       Show this help message");
         System.out.println();
