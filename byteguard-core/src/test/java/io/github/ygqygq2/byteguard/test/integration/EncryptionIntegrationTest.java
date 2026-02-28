@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.*;
 
 /**
  * 集成测试 - 验证加密完整流程
@@ -25,6 +26,8 @@ public class EncryptionIntegrationTest {
     private static final String ARTHAS_DOWNLOAD_URL = "https://arthas.aliyun.com/arthas-boot.jar";
     // 相对于项目根目录（byteguard/），测试工作目录为 byteguard-core/，所以用 ../
     private static final String TEST_APPS_CACHE = "../.test-apps";
+    // test-fixtures 目录已纳入版本控制，CI 环境优先使用
+    private static final String TEST_FIXTURES_DIR = "../test-fixtures";
 
     @BeforeEach
     @DisplayName("初始化加密模块")
@@ -155,11 +158,13 @@ public class EncryptionIntegrationTest {
             System.out.println("✓ 加密元数据验证通过");
         }
         
-        // 5. 使用预生成的测试 License 文件（由 byteguard-license-server 生成）
-        Path licenseFile = Paths.get(TEST_APPS_CACHE + "/test-integration.lic");
-        assertTrue(Files.exists(licenseFile), 
-            "测试 License 应该存在: " + licenseFile.toAbsolutePath() +
-            "\n请运行: cd ../byteguard-license-server && ./bin/license-generator -type TRIAL -to 'Integration Test' -days 365 -output ../byteguard/.test-apps/test-integration.lic");
+        // 5. 使用预生成的测试 License 文件（优先 test-fixtures/，回退 .test-apps/）
+        Path licenseFile = Paths.get(TEST_FIXTURES_DIR + "/test-integration.lic");
+        if (!Files.exists(licenseFile)) {
+            licenseFile = Paths.get(TEST_APPS_CACHE + "/test-integration.lic");
+        }
+        assumeTrue(Files.exists(licenseFile),
+            "跳过: 测试 License 不存在 (" + licenseFile.toAbsolutePath() + ")");
         System.out.println("\n✓ 使用测试 License: " + licenseFile.toAbsolutePath());
         
         // 6. 验证加密后的 Arthas 可以使用 JavaAgent 运行
