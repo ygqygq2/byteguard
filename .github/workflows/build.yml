@@ -30,6 +30,16 @@ jobs:
       if: runner.os != 'Windows'
       run: chmod +x gradlew
 
+    - name: Write test license from secret
+      env:
+        TEST_INTEGRATION_LICENSE: ${{ secrets.TEST_INTEGRATION_LICENSE }}
+      shell: bash
+      run: |
+        if [ -n "$TEST_INTEGRATION_LICENSE" ]; then
+          mkdir -p .test-apps
+          printf '%s' "$TEST_INTEGRATION_LICENSE" > .test-apps/test-integration.lic
+        fi
+
     - name: Build with Gradle
       run: ./gradlew build --no-daemon
 

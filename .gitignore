@@ -7,6 +7,8 @@ build/
 # 测试缓存目录（不被版本管理）
 .testcache/
 .test-apps/
+# license 文件不提交，通过 CI Secret 注入
+test-fixtures/*.lic
 
 # Maven (for maven-plugin module)
 target/
