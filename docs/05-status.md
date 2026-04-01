@@ -32,12 +32,15 @@
   - 读取 JAR 文件
   - 扫描 .class 文件
   - 加密每个类（派生独立密钥）
-  - 存储到 `META-INF/.encrypted/`
   - 生成元数据 `META-INF/.byteguard/metadata.json`
+   - 支持 `--packages` / `--exclude` 包过滤
+   - 支持进度条、`--threads` 并发参数、`--report` JSON 报告
+   - 支持从 `BYTEGUARD_PASSWORD` 读取密码
+- ✅ Verify / Analyze / Version 命令
 - ✅ License 生成命令 (`LicenseCommand.java`)
-  - 生成 License ID
-  - RSA 签名
-  - JSON 格式保存
+   - 生成 License ID
+   - RSA 签名
+   - JSON 格式保存
 
 #### 5. JavaAgent
 - ✅ Agent 入口实现 (`ByteGuardAgent.java`)
@@ -52,6 +55,7 @@
 - ✅ 加密测试：成功加密 simple-app.jar (3 classes)
 - ✅ License 生成：成功生成 license.lic
 - ✅ 元数据验证：JSON 格式正确
+- ✅ CLI 测试：进度条、报告输出、过滤规则、环境变量密码回退
 
 ### 🚧 进行中
 
@@ -78,12 +82,13 @@
 
 #### 中优先级
 4. **高级功能**
-   - [ ] 包选择性加密 (--packages)
-   - [ ] 排除规则 (--exclude)
+   - [x] 包选择性加密 (--packages)
+   - [x] 排除规则 (--exclude)
    - [ ] 机器绑定验证
    - [ ] License 实例数限制
 
 5. **工具增强**
+- [x] CLI 进度条与报告输出
    - [ ] Gradle 插件
    - [ ] License 密钥对管理工具
    - [ ] 解密性能分析工具

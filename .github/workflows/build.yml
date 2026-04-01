@@ -141,4 +141,5 @@ jobs:
       uses: actions/upload-artifact@v6
       with:
         name: dependency-check-report
-        path: build/reports/dependency-check-report.html
+        path: |
+          **/build/reports/dependency-check-report.html

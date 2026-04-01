@@ -23,18 +23,22 @@ java -jar byteguard-cli.jar encrypt \
   --output app-encrypted.jar \
   --password ${BYTEGUARD_PASSWORD} \
   --packages com.example,com.myapp \
-  --exclude **/*Test.class,**/TestUtils.class \
-  --verbose
+  --exclude com.example.tests \
+  --threads 4 \
+  --report build/byteguard-report.json
 ```
 
 | 选项 | 必需 | 说明 | 示例 |
 |------|------|------|------|
 | `--input` | 是 | 输入 JAR 文件路径 | `app.jar` |
 | `--output` | 是 | 输出 JAR 文件路径 | `app-encrypted.jar` |
-| `--password` | 是 | 加密密码（推荐环境变量） | `${BYTEGUARD_PASSWORD}` |
+| `--password` | 否* | 加密密码；未提供时回退读取 `BYTEGUARD_PASSWORD` | `${BYTEGUARD_PASSWORD}` |
 | `--packages` | 否 | 要加密的包（逗号分隔） | `com.example,com.myapp` |
-| `--exclude` | 否 | 排除的类模式 | `**/*Test.class` |
-| `--verbose` | 否 | 详细输出 | - |
+| `--exclude` | 否 | 排除的包前缀（逗号分隔） | `com.example.tests` |
+| `--threads` | 否 | 并发加密线程数 | `4` |
+| `--report` | 否 | 输出 JSON 加密报告 | `build/byteguard-report.json` |
+
+> `*` `--password` 与环境变量 `BYTEGUARD_PASSWORD` 二选一即可。
 
 #### 环境变量
 
@@ -42,6 +46,29 @@ java -jar byteguard-cli.jar encrypt \
 export BYTEGUARD_PASSWORD="your_secure_password"
 java -jar byteguard-cli.jar encrypt --input app.jar --output app-encrypted.jar
 ```
+
+#### 本地安装
+
+```bash
+# 安装到 ~/.local/bin
+bash ./scripts/install-cli.sh
+
+# 安装到 /usr/local/bin（可能需要 sudo）
+sudo bash ./scripts/install-cli.sh --system
+```
+
+安装完成后可直接运行：
+
+```bash
+byteguard version
+byteguard encrypt --input app.jar --output app-encrypted.jar
+```
+
+#### 输出行为
+
+- 默认在终端显示加密进度条和已处理类数量
+- 使用 `--report <file>` 可将本次加密摘要写入 JSON 报告
+- 当过滤规则未命中任何类时，会明确提示 `Nothing to encrypt`
 
 ## 🔌 Maven Plugin
 

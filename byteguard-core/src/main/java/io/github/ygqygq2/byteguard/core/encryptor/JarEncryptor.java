@@ -15,6 +15,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -84,6 +86,22 @@ public class JarEncryptor {
      * @throws CryptoException 加密错误
      */
     public EncryptionMetadata encrypt(Path inputJar, Path outputJar) throws IOException, CryptoException {
+        return encrypt(inputJar, outputJar, ProgressListener.noOp());
+    }
+
+    /**
+     * 加密 JAR 文件，并通过监听器上报进度。
+     *
+     * @param inputJar  原始 JAR 路径
+     * @param outputJar 输出加密 JAR 路径
+     * @param listener  进度监听器（可为 {@code null}）
+     * @return 加密元数据（包含统计信息）
+     * @throws IOException     IO 错误
+     * @throws CryptoException 加密错误
+     */
+    public EncryptionMetadata encrypt(Path inputJar, Path outputJar, ProgressListener listener)
+            throws IOException, CryptoException {
+        ProgressListener progressListener = listener != null ? listener : ProgressListener.noOp();
         byte[] salt = saltGenerator.generate();
         byte[] masterKey = keyDerivation.deriveMasterKey(password, salt);
         EncryptionMetadata metadata = new EncryptionMetadata(salt);
@@ -108,32 +126,45 @@ public class JarEncryptor {
                 }
             }
 
+            progressListener.onStart(toEncrypt.size());
+
             // 并发加密
             int threads = config.getThreads();
             ExecutorService executor = Executors.newFixedThreadPool(threads);
-            List<Future<EncryptionResult>> futures = new ArrayList<>();
+            CompletionService<EncryptionResult> completionService = new ExecutorCompletionService<>(executor);
 
             for (JarEntry entry : toEncrypt) {
                 byte[] classBytes = readEntry(jarFile, entry);
                 String classPath = entry.getName();
-                futures.add(executor.submit(() -> {
+                completionService.submit(() -> {
                     String className = classPath.substring(0, classPath.length() - 6).replace('/', '.');
                     EncryptedClass ec = classEncryptor.encrypt(className, classBytes);
                     return new EncryptionResult(classPath, ec.getEncryptedBytes());
-                }));
+                });
             }
 
             executor.shutdown();
 
             // 写入加密条目（加密字节写到原始类路径，替换原始内容）
-            for (Future<EncryptionResult> future : futures) {
+            for (int completed = 1; completed <= toEncrypt.size(); completed++) {
+                Future<EncryptionResult> future;
+                try {
+                    future = completionService.take();
+                } catch (InterruptedException e) {
+                    executor.shutdownNow();
+                    Thread.currentThread().interrupt();
+                    throw new CryptoException("Encryption interrupted", e);
+                }
+
                 EncryptionResult result;
                 try {
                     result = future.get();
                 } catch (InterruptedException e) {
+                    executor.shutdownNow();
                     Thread.currentThread().interrupt();
                     throw new CryptoException("Encryption interrupted", e);
                 } catch (ExecutionException e) {
+                    executor.shutdownNow();
                     Throwable cause = e.getCause();
                     if (cause instanceof CryptoException ce) throw ce;
                     throw new CryptoException("Encryption failed: " + cause.getMessage(), cause);
@@ -146,6 +177,7 @@ public class JarEncryptor {
                 jos.closeEntry();
 
                 metadata.addClass(result.classPath, result.encryptedBytes.length);
+                progressListener.onProgress(result.classPath, completed, toEncrypt.size());
             }
 
             // 写入元数据
@@ -154,6 +186,8 @@ public class JarEncryptor {
             jos.putNextEntry(metaEntry);
             jos.write(metadataJson.getBytes(StandardCharsets.UTF_8));
             jos.closeEntry();
+
+            progressListener.onFinish(metadata);
         }
 
         return metadata;
@@ -182,4 +216,34 @@ public class JarEncryptor {
 
     /** 内部结果载体 */
     private record EncryptionResult(String classPath, byte[] encryptedBytes) {}
+
+    /**
+     * 加密进度监听器。
+     */
+    public interface ProgressListener {
+        void onStart(int totalClasses);
+
+        void onProgress(String classPath, int completed, int totalClasses);
+
+        void onFinish(EncryptionMetadata metadata);
+
+        static ProgressListener noOp() {
+            return new ProgressListener() {
+                @Override
+                public void onStart(int totalClasses) {
+                    // no-op
+                }
+
+                @Override
+                public void onProgress(String classPath, int completed, int totalClasses) {
+                    // no-op
+                }
+
+                @Override
+                public void onFinish(EncryptionMetadata metadata) {
+                    // no-op
+                }
+            };
+        }
+    }
 }

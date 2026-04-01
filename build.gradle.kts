@@ -3,8 +3,9 @@ plugins {
     `maven-publish`
     signing
     id("jacoco")
+    id("org.owasp.dependencycheck") version "12.2.0" apply false
     id("org.sonarqube") version "4.4.1.3373" apply false
-    id("com.github.spotbugs") version "6.0.4" apply false
+    id("com.github.spotbugs") version "6.4.8" apply false
 }
 
 group = "io.github.ygqygq2"
@@ -18,9 +19,12 @@ allprojects {
 
 subprojects {
     apply(plugin = "java")
+    apply(plugin = "checkstyle")
     apply(plugin = "maven-publish")
     apply(plugin = "signing")
     apply(plugin = "jacoco")
+    apply(plugin = "com.github.spotbugs")
+    apply(plugin = "org.owasp.dependencycheck")
 
     group = rootProject.group
     version = rootProject.version
@@ -86,6 +90,7 @@ subprojects {
 
     dependencies {
         testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
+        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
         testImplementation("org.assertj:assertj-core:3.24.2")
         testImplementation("org.mockito:mockito-core:5.8.0")
     }

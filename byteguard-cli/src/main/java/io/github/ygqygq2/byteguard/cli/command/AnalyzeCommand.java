@@ -155,12 +155,9 @@ public class AnalyzeCommand {
         List<ClassInfo> toSkip = new ArrayList<>();
 
         for (ClassInfo ci : report.getClasses()) {
-            // className 形如 com/example/Main.class，去掉 .class 后与 shouldEncrypt 一致
-            String classPath = ci.getClassName();
-            String classPathNoExt = classPath.endsWith(".class")
-                    ? classPath.substring(0, classPath.length() - 6)
-                    : classPath;
-            if (config.shouldEncrypt(classPathNoExt)) {
+            // ClassInfo 返回的是点分类名（如 com.example.Main），需转换为路径风格与配置匹配
+            String normalizedClassName = ci.getClassName().replace('.', '/');
+            if (config.shouldEncrypt(normalizedClassName)) {
                 toEncrypt.add(ci);
             } else {
                 toSkip.add(ci);

@@ -19,6 +19,22 @@ cd byteguard/byteguard
 ./gradlew :byteguard-cli:jar
 ```
 
+### 可选：安装为本地命令
+
+```bash
+# 安装到 ~/.local/bin/byteguard
+bash ./scripts/install-cli.sh
+
+# 或安装到自定义目录
+bash ./scripts/install-cli.sh --prefix /tmp/byteguard-install
+```
+
+安装后可直接使用：
+
+```bash
+byteguard encrypt --input your-app.jar --output your-app-encrypted.jar --password yourpassword
+```
+
 ### 2. 加密你的 JAR
 
 ```bash

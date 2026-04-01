@@ -5,7 +5,6 @@ import io.github.ygqygq2.byteguard.core.crypto.KeyDerivation;
 import io.github.ygqygq2.byteguard.core.loader.MetadataReader;
 import io.github.ygqygq2.byteguard.core.model.EncryptionMetadata;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,10 +56,7 @@ public class VerifyCommand {
             }
         }
 
-        // 从环境变量读取密码
-        if (password == null) {
-            password = System.getenv("BYTEGUARD_PASSWORD");
-        }
+        password = resolvePassword(password);
 
         if (inputJar == null) {
             System.err.println("Error: --jar is required");
@@ -85,6 +81,18 @@ public class VerifyCommand {
         if (!ok) {
             System.exit(1);
         }
+    }
+
+    String resolvePassword(String password) {
+        if (password != null && !password.isBlank()) {
+            return password;
+        }
+        String envPassword = lookupEnv("BYTEGUARD_PASSWORD");
+        return (envPassword == null || envPassword.isBlank()) ? null : envPassword;
+    }
+
+    String lookupEnv(String name) {
+        return System.getenv(name);
     }
 
     private boolean verify(Path jarPath, String password, boolean verbose) throws Exception {
