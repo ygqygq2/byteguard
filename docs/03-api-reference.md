@@ -55,6 +55,9 @@ bash ./scripts/install-cli.sh
 
 # 安装到 /usr/local/bin（可能需要 sudo）
 sudo bash ./scripts/install-cli.sh --system
+
+# 仅生成分发目录（自动包含 Unix / Windows 启动脚本）
+./gradlew :byteguard-cli:installDist
 ```
 
 安装完成后可直接运行：
@@ -63,6 +66,11 @@ sudo bash ./scripts/install-cli.sh --system
 byteguard version
 byteguard encrypt --input app.jar --output app-encrypted.jar
 ```
+
+如果只生成分发目录，可直接使用以下脚本：
+
+- `byteguard-cli/build/install/byteguard-cli/bin/byteguard-cli`
+- `byteguard-cli/build/install/byteguard-cli/bin/byteguard-cli.bat`
 
 #### 输出行为
 

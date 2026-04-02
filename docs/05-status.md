@@ -56,6 +56,7 @@
 - ✅ License 生成：成功生成 license.lic
 - ✅ 元数据验证：JSON 格式正确
 - ✅ CLI 测试：进度条、报告输出、过滤规则、环境变量密码回退
+- ✅ CLI 进程级测试：version / encrypt / verify / analyze 主链路与错误路径
 
 ### 🚧 进行中
 
@@ -89,6 +90,8 @@
 
 5. **工具增强**
 - [x] CLI 进度条与报告输出
+   - [x] 本地安装脚本（`scripts/install-cli.sh`）
+   - [x] 分发启动脚本（`installDist` 生成 `byteguard-cli` / `byteguard-cli.bat`）
    - [ ] Gradle 插件
    - [ ] License 密钥对管理工具
    - [ ] 解密性能分析工具

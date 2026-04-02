@@ -27,6 +27,9 @@ bash ./scripts/install-cli.sh
 
 # 或安装到自定义目录
 bash ./scripts/install-cli.sh --prefix /tmp/byteguard-install
+
+# 或仅生成分发目录（含 Unix / Windows 启动脚本）
+./gradlew :byteguard-cli:installDist
 ```
 
 安装后可直接使用：
@@ -34,6 +37,11 @@ bash ./scripts/install-cli.sh --prefix /tmp/byteguard-install
 ```bash
 byteguard encrypt --input your-app.jar --output your-app-encrypted.jar --password yourpassword
 ```
+
+源码构建后的启动脚本位于：
+
+- `byteguard-cli/build/install/byteguard-cli/bin/byteguard-cli`
+- `byteguard-cli/build/install/byteguard-cli/bin/byteguard-cli.bat`
 
 ### 2. 加密你的 JAR
 
