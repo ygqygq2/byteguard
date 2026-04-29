@@ -37,10 +37,11 @@ public class EncryptionMetadata {
      */
     @Deprecated
 
-    private String version = "1.0";
+    private String version = "1.1";
     private String algorithm = "AES-256-GCM";
     private String keyDerivation = "PBKDF2-HKDF";
     private byte[] salt;
+    private byte[] metadataMac;
     private long encryptedAt;
     private int totalClasses;
 
@@ -78,6 +79,9 @@ public class EncryptionMetadata {
 
     public byte[] getSalt() { return salt; }
     public void setSalt(byte[] salt) { this.salt = salt; }
+
+    public byte[] getMetadataMac() { return metadataMac; }
+    public void setMetadataMac(byte[] metadataMac) { this.metadataMac = metadataMac; }
 
     public long getEncryptedAt() { return encryptedAt; }
     public void setEncryptedAt(long encryptedAt) { this.encryptedAt = encryptedAt; }

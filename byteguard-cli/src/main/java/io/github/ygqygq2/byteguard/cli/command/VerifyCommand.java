@@ -2,6 +2,7 @@ package io.github.ygqygq2.byteguard.cli.command;
 
 import io.github.ygqygq2.byteguard.core.crypto.AESGCMCipher;
 import io.github.ygqygq2.byteguard.core.crypto.KeyDerivation;
+import io.github.ygqygq2.byteguard.core.encryptor.MetadataIntegrity;
 import io.github.ygqygq2.byteguard.core.loader.MetadataReader;
 import io.github.ygqygq2.byteguard.core.model.EncryptionMetadata;
 
@@ -121,10 +122,16 @@ public class VerifyCommand {
 
             if (verbose) {
                 System.out.println();
-                System.out.println("      Algorithm    : " + metadata.getAlgorithm());
-                System.out.println("      Key derivation: " + metadata.getKeyDerivation());
-                System.out.println("      Encrypted at : " + Instant.ofEpochMilli(metadata.getEncryptedAt()));
-                System.out.println("      Total classes: " + metadata.getTotalClasses());
+                System.out.println("      Metadata version: " + metadata.getVersion());
+                System.out.println("      Algorithm       : " + metadata.getAlgorithm());
+                System.out.println("      Key derivation  : " + metadata.getKeyDerivation());
+                System.out.println("      Encrypted at    : " + Instant.ofEpochMilli(metadata.getEncryptedAt()));
+                System.out.println("      Total classes   : " + metadata.getTotalClasses());
+                if (metadata.getMetadataMac() != null && metadata.getMetadataMac().length > 0) {
+                    System.out.println("      Integrity       : ✓ Protected");
+                } else {
+                    System.out.println("      Integrity       : ⚠ Unprotected (recommend re-encryption)");
+                }
                 System.out.println();
             }
 
@@ -152,12 +159,25 @@ public class VerifyCommand {
                         byte[] salt = metadata.getSalt();
                         KeyDerivation kd = new KeyDerivation();
                         byte[] masterKey = kd.deriveMasterKey(password, salt);
+                        if (metadata.getMetadataMac() != null) {
+                            boolean metadataOk = new MetadataIntegrity().verify(metadata, masterKey);
+                            if (!metadataOk) {
+                                throw new IllegalStateException("Metadata integrity verification failed");
+                            }
+                        } else {
+                            System.err.println("\n      ⚠ Warning: This JAR was encrypted with legacy format (no metadata integrity protection).");
+                            System.err.println("      Recommend re-encrypting with current version for enhanced security.");
+                        }
                         // 密钥派生用点分类名（与 ClassDecryptor 一致）
                         String dottedName = firstClass
                             .substring(0, firstClass.length() - 6)
                             .replace('/', '.');
                         byte[] classKey = kd.deriveClassKey(masterKey, dottedName);
-                        new AESGCMCipher().decrypt(encryptedBytes, classKey);
+                        new AESGCMCipher().decrypt(
+                            encryptedBytes,
+                            classKey,
+                            AESGCMCipher.aadFromClassName(dottedName)
+                        );
                         System.out.println("OK");
                     } catch (Exception e) {
                         System.out.println("FAIL");

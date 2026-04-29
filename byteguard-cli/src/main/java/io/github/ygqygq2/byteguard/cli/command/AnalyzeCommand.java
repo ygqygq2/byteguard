@@ -114,10 +114,18 @@ public class AnalyzeCommand {
             }
         }
 
-        System.out.println("  Algorithm    : " + meta.getAlgorithm());
-        System.out.println("  Key derivation: " + meta.getKeyDerivation());
-        System.out.println("  Encrypted at : " + Instant.ofEpochMilli(meta.getEncryptedAt()));
-        System.out.println("  Total classes: " + meta.getTotalClasses());
+        System.out.println("  Metadata version: " + meta.getVersion());
+        System.out.println("  Algorithm       : " + meta.getAlgorithm());
+        System.out.println("  Key derivation  : " + meta.getKeyDerivation());
+        System.out.println("  Encrypted at    : " + Instant.ofEpochMilli(meta.getEncryptedAt()));
+        System.out.println("  Total classes   : " + meta.getTotalClasses());
+        
+        // 显示完整性保护状态
+        if (meta.getMetadataMac() != null && meta.getMetadataMac().length > 0) {
+            System.out.println("  Integrity       : ✓ Protected (HMAC-SHA256)");
+        } else {
+            System.out.println("  Integrity       : ⚠ Unprotected (legacy format)");
+        }
         System.out.println();
 
         if (verbose && meta.getClasses() != null) {

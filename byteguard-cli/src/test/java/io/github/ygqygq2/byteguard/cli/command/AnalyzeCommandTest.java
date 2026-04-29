@@ -52,7 +52,7 @@ class AnalyzeCommandTest {
 
         String console = output.toString(StandardCharsets.UTF_8);
         assertTrue(console.contains("Mode: Encrypted JAR"));
-        assertTrue(console.contains("Total classes: 2"));
+        assertTrue(console.contains("Total classes   : 2"));
         assertTrue(console.contains("AES-256-GCM"));
     }
 

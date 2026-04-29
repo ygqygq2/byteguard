@@ -2,57 +2,39 @@
 
 ## 🏗️ 整体架构
 
-ByteGuard 采用分层架构，职责清晰：
+本文档只描述 **公开仓库 `byteguard` 本身的开源架构**。
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│          ByteGuard 生态系统                             │
+│                 ByteGuard Open Source                  │
 ├────────────────────────────────────────────────────────┤
-│                                                         │
-│  ┌──────────────────────────────────────────────────┐ │
-│  │  byteguard (公开仓库) - 核心加密引擎              │ │
-│  ├──────────────────────────────────────────────────┤ │
-│  │  • byteguard-core:    加密/解密算法              │ │
-│  │  • byteguard-cli:     CLI 工具 + JavaAgent      │ │
-│  │  • byteguard-maven-plugin: Maven 集成           │ │
-│  └─────────────────┬────────────────────────────────┘ │
-│                    │ (使用)                            │
-│                    ▼                                   │
-│  ┌──────────────────────────────────────────────────┐ │
-│  │  byteguard-website (私有) - 在线加密服务         │ │
-│  ├──────────────────────────────────────────────────┤ │
-│  │  • JAR 文件上传加密                              │ │
-│  │  • Agent.jar 下载服务                            │ │
-│  │  • 用户管理和订单系统                            │ │
-│  └──────────────────────────────────────────────────┘ │
-│                                                         │
-│  ┌──────────────────────────────────────────────────┐ │
-│  │  byteguard-license-server (私有) - License 管理  │ │
-│  ├──────────────────────────────────────────────────┤ │
-│  │  • GPG License 生成                              │ │
-│  │  • License 验证 API                              │ │
-│  │  • 管理后台                                      │ │
-│  └──────────────────────────────────────────────────┘ │
-│                                                         │
-│  ┌──────────────────────────────────────────────────┐ │
-│  │  byteguard-pro (私有) - 企业增强功能             │ │
-│  ├──────────────────────────────────────────────────┤ │
-│  │  • 反调试检测                                    │ │
-│  │  • 高级代码混淆                                  │ │
-│  │  • 运行时完整性检查                              │ │
-│  └──────────────────────────────────────────────────┘ │
-│                                                         │
+│                                                        │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  byteguard-core                                  │  │
+│  │  • AES-256-GCM                                   │  │
+│  │  • PBKDF2 + HKDF                                 │  │
+│  │  • Class Encryptor / Decryptor                   │  │
+│  └─────────────────┬────────────────────────────────┘  │
+│                    │                                   │
+│      ┌─────────────┴─────────────┐                     │
+│      ▼                           ▼                     │
+│  ┌──────────────┐          ┌──────────────┐            │
+│  │ byteguard-cli│          │ Maven Plugin │            │
+│  │ CLI + Agent  │          │ Build Integr │            │
+│  └──────────────┘          └──────────────┘            │
+│                                                        │
 └────────────────────────────────────────────────────────┘
 ```
 
 ### 职责划分
 
-| 模块 | 类型 | 职责 |
-|------|------|------|
-| **byteguard** | 开源 | 核心加密引擎（AES-256-GCM + PBKDF2） |
-| **byteguard-website** | 私有 | 在线服务（使用 byteguard 作为底层） |
-| **byteguard-license-server** | 私有 | License 管理和验证 |
-| **byteguard-pro** | 私有 | 企业级安全增强 |
+| 模块 | 职责 |
+|------|------|
+| **byteguard-core** | 加密算法、密钥派生、类加密与解密 |
+| **byteguard-cli** | CLI 命令、Java Agent、运行验证入口 |
+| **byteguard-maven-plugin** | 构建期集成与自动加密 |
+
+> 本文档仅描述公开仓库中的核心架构与实现。
 
 ## 🔐 ByteGuard Core 架构
 
@@ -92,9 +74,7 @@ ByteGuard 采用分层架构，职责清晰：
 │                                                               │
 └─────────────────────────────────────────────────────────────┘
 
-> **🚀 想要更多企业级保护？**  
-> ByteGuard Pro 提供：**GPG 数字签名验证**、**硬件绑定授权**、**在线 License 管理平台**、**反调试保护**、**代码混淆**、**运行时完整性检查**等高级功能。  
-> 详情请访问：[https://byteguard-pro.ygqygq2.com](https://byteguard-pro.ygqygq2.com)
+
 ```
 
 ## 🔐 加密流程
@@ -147,10 +127,35 @@ for (ClassFile class : jar.classes) {
 
 **GCM 模式优势**：
 - ✅ 认证加密（AEAD）：同时保证保密性和完整性
+- ✅ 上下文绑定：通过 AAD 绑定类名，降低密文在错误类上下文中被接受的风险
 - ✅ 防篡改：任何修改都会导致认证失败
 - ✅ 性能优秀：硬件加速（AES-NI）
 
-### 3. 元数据生成
+### 3. 元数据完整性保护
+
+```
+Master Key
+     │
+     ├─── HKDF-Expand
+     │    └─── Context: "byteguard-metadata"
+     │
+     ▼
+Metadata Key (32 bytes)
+     │
+     ├─── HMAC-SHA256
+     │    └─── Input: Canonical JSON (excluding metadataMac)
+     │
+     ▼
+Metadata MAC (32 bytes)
+```
+
+**防护目标**：
+- ✅ 防止篡改加密类列表
+- ✅ 防止修改算法标识或版本信息
+- ✅ 防止替换 salt 进行降级攻击
+- ✅ 确保元数据与密钥一致性
+
+### 4. 元数据生成
 
 加密后的 JAR 结构：
 
@@ -168,17 +173,27 @@ encrypted-app.jar
 └── lib/                              # 依赖 JAR（未加密）
 ```
 
-`byteguard-metadata.json` 示例：
+`byteguard-metadata.json` 示例（v1.1 格式）：
 
 ```json
 {
-  "version": "1.0",
+  "version": "1.1",
   "algorithm": "AES-256-GCM",
+  "keyDerivation": "PBKDF2-HKDF",
   "salt": "base64EncodedSalt==",
+  "metadataMac": "base64EncodedHMAC==",
   "encryptedAt": 1705593600000,
-  "totalClasses": 42
+  "totalClasses": 42,
+  "classes": {
+    "com/example/Main.class": 2048,
+    "com/example/Service.class": 1536
+  }
 }
 ```
+
+**版本说明**：
+- **v1.0**（旧版）：无 `metadataMac` 字段，兼容但不提供元数据完整性保护
+- **v1.1**（当前）：包含 `metadataMac`，提供完整的元数据完整性验证
 
 ## 🚀 运行时解密
 
@@ -191,7 +206,7 @@ JVM Startup
 1. JavaAgent.premain()
      │
      ├─── Load license.lic
-     ├─── Verify GPG signature
+     ├─── Validate license
      ├─── Parse metadata
      └─── Derive master key
      │
@@ -275,7 +290,7 @@ public class ByteGuardTransformer implements ClassFileTransformer {
 |----------|----------|----------|
 | 静态反编译 | 类文件加密 | ✅ 高 |
 | 内存 Dump | 仅运行时存在明文 | ⚠️ 中 |
-| 调试器附加 | （Pro：反调试） | ⚠️ 中 |
+| 调试器附加 | 当前公开版本未覆盖专门对抗 | ⚠️ 中 |
 | JAR 篡改 | 元数据校验 | ⚠️ 中 |
 | 密码爆破 | PBKDF2 100k 迭代 | ✅ 高 |
 
@@ -286,13 +301,10 @@ public class ByteGuardTransformer implements ClassFileTransformer {
 - ✅ 离线暴力破解（时间成本高）
 - ✅ 密钥派生安全（PBKDF2 + HKDF）
 
-**Pro 版本增强**：
-- 🔒 GPG License 验证
-- 🔒 机器绑定（CPU/主板序列号）
-- 🔒 运行时内存保护
-- 🔒 反调试检测
-- 🔒 代码混淆
-- 🔒 完整性自检
+**当前公开版本未覆盖的方向**：
+- 更强的运行时防护
+- 更严格的完整性保护
+- 更复杂的分发与授权策略
 
 ## 📚 相关文档
 

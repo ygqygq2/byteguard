@@ -47,6 +47,11 @@ public class MetadataReader {
             metadata.setSalt(Base64Utils.decode(saltB64));
         }
 
+        String metadataMacB64 = extractString(json, "metadataMac");
+        if (metadataMacB64 != null) {
+            metadata.setMetadataMac(Base64Utils.decode(metadataMacB64));
+        }
+
         String encryptedAt = extractScalar(json, "encryptedAt");
         if (encryptedAt != null) {
             metadata.setEncryptedAt(Long.parseLong(encryptedAt.trim()));

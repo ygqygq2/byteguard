@@ -53,6 +53,7 @@ public class JarEncryptor {
     private final SaltGenerator saltGenerator;
     private final KeyDerivation keyDerivation;
     private final MetadataWriter metadataWriter;
+    private final MetadataIntegrity metadataIntegrity;
 
     /**
      * 使用默认配置（加密所有类）
@@ -74,6 +75,7 @@ public class JarEncryptor {
         this.saltGenerator = new SaltGenerator();
         this.keyDerivation = new KeyDerivation();
         this.metadataWriter = new MetadataWriter();
+        this.metadataIntegrity = new MetadataIntegrity();
     }
 
     /**
@@ -181,6 +183,7 @@ public class JarEncryptor {
             }
 
             // 写入元数据
+            metadata.setMetadataMac(metadataIntegrity.computeMac(metadata, masterKey));
             String metadataJson = metadataWriter.toJson(metadata);
             JarEntry metaEntry = new JarEntry(EncryptionMetadata.METADATA_PATH);
             jos.putNextEntry(metaEntry);

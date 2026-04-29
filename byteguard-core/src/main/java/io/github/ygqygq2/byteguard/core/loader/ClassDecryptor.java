@@ -55,7 +55,7 @@ public class ClassDecryptor {
         byte[] classKey = keyDerivation.deriveClassKey(masterKey, className);
         
         // 解密
-        byte[] decrypted = cipher.decrypt(encryptedBytes, classKey);
+        byte[] decrypted = cipher.decrypt(encryptedBytes, classKey, AESGCMCipher.aadFromClassName(className));
         
         // 缓存（LRU 简化版：满了就清空）
         if (cache.size() >= maxCacheSize) {

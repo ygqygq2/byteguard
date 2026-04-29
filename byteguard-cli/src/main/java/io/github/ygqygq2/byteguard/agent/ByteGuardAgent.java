@@ -7,6 +7,7 @@ import io.github.ygqygq2.byteguard.core.license.LicenseSerializer;
 import io.github.ygqygq2.byteguard.core.license.LicenseValidator;
 import io.github.ygqygq2.byteguard.core.license.GPGLicenseValidator;
 import io.github.ygqygq2.byteguard.core.license.PublicKeyLoader;
+import io.github.ygqygq2.byteguard.core.encryptor.MetadataIntegrity;
 import io.github.ygqygq2.byteguard.core.loader.ClassDecryptor;
 import io.github.ygqygq2.byteguard.core.loader.MetadataReader;
 import io.github.ygqygq2.byteguard.core.model.EncryptionMetadata;
@@ -65,6 +66,19 @@ public class ByteGuardAgent {
             byte[] salt = metadata != null ? metadata.getSalt() : new KeyDerivation().generateSalt();
             KeyDerivation keyDerivation = new KeyDerivation();
             byte[] masterKey = keyDerivation.deriveMasterKey(config.password, salt);
+
+            if (metadata != null) {
+                if (metadata.getMetadataMac() != null) {
+                    boolean metadataOk = new MetadataIntegrity().verify(metadata, masterKey);
+                    if (!metadataOk) {
+                        throw new IllegalStateException("Metadata integrity verification failed");
+                    }
+                    System.out.println("[ByteGuard] Metadata integrity verified (v" + metadata.getVersion() + ")");
+                } else {
+                    System.err.println("[ByteGuard] Warning: Legacy encrypted JAR (no metadata integrity protection)");
+                    System.err.println("[ByteGuard] Recommend re-encrypting with current version for enhanced security");
+                }
+            }
 
             decryptor = new ClassDecryptor(masterKey);
             System.out.println("[ByteGuard] Decryption engine initialized");

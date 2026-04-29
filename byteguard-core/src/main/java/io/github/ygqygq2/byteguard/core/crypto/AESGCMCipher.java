@@ -4,6 +4,7 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 
 /**
@@ -37,6 +38,22 @@ public class AESGCMCipher {
      * @throws CryptoException 加密失败
      */
     public byte[] encrypt(byte[] plaintext, byte[] key) throws CryptoException {
+        return encrypt(plaintext, key, null);
+    }
+
+    /**
+     * 加密字节数组，并绑定附加认证数据（AAD）。
+     *
+     * <p>AAD 不会出现在密文中，但会参与 GCM Tag 认证，适合绑定类名、版本号、
+     * 资源路径等上下文信息，防止密文在错误上下文中被接受。
+     *
+     * @param plaintext 明文
+     * @param key 32字节的 AES-256 密钥
+     * @param aad 附加认证数据；可为 {@code null}
+     * @return 密文 (IV + Ciphertext + Tag)
+     * @throws CryptoException 加密失败
+     */
+    public byte[] encrypt(byte[] plaintext, byte[] key, byte[] aad) throws CryptoException {
         validateKey(key);
         
         try {
@@ -49,6 +66,7 @@ public class AESGCMCipher {
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
             SecretKey secretKey = new SecretKeySpec(key, "AES");
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, spec);
+            applyAad(cipher, aad);
             
             // 加密
             byte[] ciphertext = cipher.doFinal(plaintext);
@@ -74,6 +92,19 @@ public class AESGCMCipher {
      * @throws CryptoException 解密失败（密钥错误、数据被篡改等）
      */
     public byte[] decrypt(byte[] encrypted, byte[] key) throws CryptoException {
+        return decrypt(encrypted, key, null);
+    }
+
+    /**
+     * 解密字节数组，并验证附加认证数据（AAD）。
+     *
+     * @param encrypted 密文 (IV + Ciphertext + Tag)
+     * @param key 32字节的 AES-256 密钥
+     * @param aad 附加认证数据；必须与加密时完全一致
+     * @return 明文
+     * @throws CryptoException 解密失败（密钥错误、数据被篡改、AAD 不匹配等）
+     */
+    public byte[] decrypt(byte[] encrypted, byte[] key, byte[] aad) throws CryptoException {
         validateKey(key);
         
         if (encrypted.length < GCM_IV_LENGTH + GCM_TAG_LENGTH / 8) {
@@ -95,6 +126,7 @@ public class AESGCMCipher {
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
             SecretKey secretKey = new SecretKeySpec(key, "AES");
             cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
+            applyAad(cipher, aad);
             
             // 解密（自动验证 Tag）
             return cipher.doFinal(ciphertext);
@@ -113,6 +145,22 @@ public class AESGCMCipher {
         byte[] key = new byte[AES_KEY_SIZE];
         secureRandom.nextBytes(key);
         return key;
+    }
+
+    /**
+     * 将类名编码为 AAD，供调用方复用。
+     */
+    public static byte[] aadFromClassName(String className) {
+        if (className == null || className.isEmpty()) {
+            return null;
+        }
+        return className.getBytes(StandardCharsets.UTF_8);
+    }
+
+    private void applyAad(Cipher cipher, byte[] aad) {
+        if (aad != null && aad.length > 0) {
+            cipher.updateAAD(aad);
+        }
     }
     
     private void validateKey(byte[] key) throws CryptoException {

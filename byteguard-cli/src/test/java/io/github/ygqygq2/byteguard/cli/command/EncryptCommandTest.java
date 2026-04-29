@@ -51,6 +51,8 @@ class EncryptCommandTest {
 
         EncryptionMetadata metadata = readMetadata(outputJar);
         assertEquals(2, metadata.getTotalClasses());
+        assertTrue(metadata.getMetadataMac() != null && metadata.getMetadataMac().length > 0,
+            "Encrypted metadata should include integrity MAC");
     }
 
     @Test
@@ -69,6 +71,8 @@ class EncryptCommandTest {
         EncryptionMetadata metadata = readMetadata(outputJar);
         assertEquals(1, metadata.getTotalClasses());
         assertTrue(metadata.getClasses().containsKey("io/github/ygqygq2/byteguard/core/encryptor/ClassEncryptor.class"));
+        assertTrue(metadata.getMetadataMac() != null && metadata.getMetadataMac().length > 0,
+            "Filtered encryption should still write metadata MAC");
     }
 
     @Test

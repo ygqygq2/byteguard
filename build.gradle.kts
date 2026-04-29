@@ -102,7 +102,7 @@ subprojects {
 
                 pom {
                     name.set(project.name)
-                    description.set("Modern Java bytecode encryption with 100% Lambda support")
+                    description.set("Modern Java bytecode protection with class-level encryption and runtime decryption")
                     url.set("https://github.com/ygqygq2/byteguard")
                     
                     licenses {

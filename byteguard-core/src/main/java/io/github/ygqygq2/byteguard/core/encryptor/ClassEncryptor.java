@@ -54,7 +54,7 @@ public class ClassEncryptor {
         }
 
         byte[] classKey = keyDerivation.deriveClassKey(masterKey, className);
-        byte[] encryptedBytes = cipher.encrypt(classBytes, classKey);
+        byte[] encryptedBytes = cipher.encrypt(classBytes, classKey, AESGCMCipher.aadFromClassName(className));
         return new EncryptedClass(className, encryptedBytes);
     }
 
@@ -68,6 +68,6 @@ public class ClassEncryptor {
      */
     public byte[] decrypt(String className, byte[] encryptedBytes) throws CryptoException {
         byte[] classKey = keyDerivation.deriveClassKey(masterKey, className);
-        return cipher.decrypt(encryptedBytes, classKey);
+        return cipher.decrypt(encryptedBytes, classKey, AESGCMCipher.aadFromClassName(className));
     }
 }

@@ -28,6 +28,19 @@ class AESGCMCipherTest {
         assertArrayEquals(plaintextBytes, decrypted);
         assertEquals(plaintext, new String(decrypted));
     }
+
+    @Test
+    void testEncryptDecryptWithAad() throws CryptoException {
+        AESGCMCipher cipher = new AESGCMCipher();
+        byte[] key = cipher.generateKey();
+        byte[] aad = AESGCMCipher.aadFromClassName("com.example.Main");
+
+        byte[] plaintext = "Hello, AAD!".getBytes();
+        byte[] encrypted = cipher.encrypt(plaintext, key, aad);
+        byte[] decrypted = cipher.decrypt(encrypted, key, aad);
+
+        assertArrayEquals(plaintext, decrypted);
+    }
     
     @Test
     void testDecryptWithWrongKey() throws CryptoException {
@@ -60,6 +73,19 @@ class AESGCMCipherTest {
         assertThrows(CryptoException.class, () -> {
             cipher.decrypt(finalEncrypted, key);
         });
+    }
+
+    @Test
+    void testDecryptWithWrongAadShouldFail() throws CryptoException {
+        AESGCMCipher cipher = new AESGCMCipher();
+        byte[] key = cipher.generateKey();
+
+        byte[] plaintext = "AAD-bound data".getBytes();
+        byte[] encrypted = cipher.encrypt(plaintext, key, AESGCMCipher.aadFromClassName("com.example.A"));
+
+        assertThrows(CryptoException.class, () ->
+            cipher.decrypt(encrypted, key, AESGCMCipher.aadFromClassName("com.example.B"))
+        );
     }
     
     @Test

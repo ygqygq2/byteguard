@@ -175,14 +175,16 @@ mvn clean package -Pprod
 ### 基本用法
 
 ```bash
-java -javaagent:byteguard-cli.jar=password=xxx -jar app.jar
+java -Dbyteguard.license=/path/to/license.lic \
+  -javaagent:byteguard-cli.jar=password=xxx \
+  -jar app.jar
 ```
 
 ### 完整参数
 
 ```bash
-java -javaagent:byteguard-cli.jar=password=xxx \
-  -Dbyteguard.debug=true \
+java -Dbyteguard.license=/path/to/license.lic \
+  -javaagent:byteguard-cli.jar=password=xxx \
   -jar app.jar
 ```
 
@@ -194,25 +196,19 @@ java -javaagent:byteguard-cli.jar=password=xxx \
 
 | 属性 | 说明 | 示例 |
 |------|------|------|
-| `byteguard.debug` | 启用调试日志 | `-Dbyteguard.debug=true` |
+| `byteguard.license` | 指定 License 文件路径 | `-Dbyteguard.license=/path/to/license.lic` |
 
-### 环境变量
+> 当前 Agent 运行前需要可用的 `license.lic`。如果 License 已放在当前目录或 `~/.byteguard/license.lic`，可以不显式传入 `-Dbyteguard.license`。
 
-| 变量 | 说明 | 示例 |
-|------|------|------|
-| `BYTEGUARD_PASSWORD` | 默认密码 | `export BYTEGUARD_PASSWORD=xxx` |
-
-> **🏢 需要企业级授权管理?**  
-> ByteGuard Pro 提供完整的 License 生命周期管理:在线生成、硬件绑定、自动续期、使用统计等。  
-> 了解更多:[https://byteguard-pro.ygqygq2.com](https://byteguard-pro.ygqygq2.com)
+> 本节仅说明公开仓库中 Agent 的运行参数与接入方式。
 
 ## 🔧 Java API
 
 ### 加密类
 
 ```java
-import io.github.ygqygy2.byteguard.core.encryptor.ClassEncryptor;
-import io.github.ygqygy2.byteguard.core.crypto.KeyDerivation;
+import io.github.ygqygq2.byteguard.core.encryptor.ClassEncryptor;
+import io.github.ygqygq2.byteguard.core.crypto.KeyDerivation;
 
 // 1. 派生主密钥
 KeyDerivation kd = new KeyDerivation();
@@ -227,7 +223,7 @@ byte[] encrypted = encryptor.encrypt("com.example.Main", classBytes);
 ### 解密类
 
 ```java
-import io.github.ygqygy2.byteguard.core.loader.ClassDecryptor;
+import io.github.ygqygq2.byteguard.core.loader.ClassDecryptor;
 
 // 解密单个类
 ClassDecryptor decryptor = new ClassDecryptor(masterKey);

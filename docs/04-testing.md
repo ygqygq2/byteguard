@@ -1,6 +1,6 @@
-# ByteGuard 测试套件
+# ByteGuard 测试指南
 
-> 统一的本地和 CI 测试框架
+> 用于验证公开仓库中的核心加密链路、CLI 行为与运行时加载流程。
 
 ## 快速开始
 
@@ -10,35 +10,30 @@
 cd byteguard
 
 # 构建项目
-./test.sh build
+./gradlew build
 
 # 运行单元测试
-./test.sh unit
+./gradlew test
 
 # 运行集成测试
-./test.sh integration
+./gradlew integrationTest
 
-# 运行所有测试（推荐）
-./test.sh all
-
-# 清理构建文件
-./test.sh clean
-
-# 帮助
-./test.sh help
+# 运行完整校验（推荐）
+./gradlew check
 ```
+
+如果你更喜欢脚本入口，仓库中也提供了 `scripts/test.sh`，但当前推荐优先使用 `gradlew` 与 CI 保持一致。
 
 ## 测试架构
 
-### 测试框架
+### 当前测试基线
 
-自实现的轻量级测试框架，零外部依赖：
+公开仓库当前主要依赖：
 
-- **`@Test`** - 标记测试方法
-- **`@Before`** - 测试初始化
-- **`@After`** - 测试清理
-- **`Assert`** - 断言库
-- **`TestRunner`** - 测试执行器
+- **JUnit 5** - 单元测试与集成测试
+- **Gradle test / integrationTest** - 本地与 CI 的统一入口
+- **JaCoCo** - 覆盖率报告
+- **GitHub Actions** - 持续集成执行环境
 
 ### 单元测试
 
@@ -50,7 +45,7 @@ cd byteguard
 
 **运行：**
 ```bash
-./test.sh unit
+./gradlew test
 ```
 
 ### 集成测试
@@ -65,7 +60,7 @@ cd byteguard
 
 **运行：**
 ```bash
-./test.sh integration
+./gradlew integrationTest
 ```
 
 ## 工作流
@@ -77,8 +72,8 @@ cd byteguard
 - 提交 Pull Request 到 `main` 分支
 
 **测试矩阵：**
-- Java 版本: 8, 11, 17, 21
-- 操作系统: ubuntu-latest
+- Java 版本: 21
+- 操作系统: ubuntu-latest, windows-latest, macos-latest
 
 **工作流程：**
 1. 编译项目
@@ -87,14 +82,14 @@ cd byteguard
 4. 验证 JAR 结构
 5. 检查代码质量
 
-查看 [.github/workflows/build-and-test.yml](../../.github/workflows/build-and-test.yml)
+查看 [.github/workflows/build.yml](../.github/workflows/build.yml)
 
 ### 本地 CI 模拟
 
 在本地环境中模拟 CI 行为：
 
 ```bash
-CI=true ./test.sh all
+CI=true ./gradlew check
 ```
 
 这会禁用彩色输出，适合日志系统。
@@ -120,26 +115,17 @@ CI=true ./test.sh all
 ### 单元测试
 
 ```java
-package io.github.ygqygq2.byteguard.test.crypto;
+package io.github.ygqygq2.byteguard.core.crypto;
 
-import io.github.ygqygq2.byteguard.test.framework.*;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MyTest {
-    
-    @Before
-    public void setUp() {
-        // 初始化测试环境
-    }
-    
-    @Test("测试描述")
-    public void testSomething() {
+    @Test
+    void testSomething() {
         // 执行测试
-        Assert.assertTrue(true, "期望值与实际值不符");
-    }
-    
-    @After
-    public void tearDown() {
-        // 清理资源
+        assertTrue(true);
     }
 }
 ```
@@ -147,43 +133,31 @@ public class MyTest {
 ### 集成测试
 
 ```java
-import io.github.ygqygq2.byteguard.test.integration.IntegrationTest;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-public class MyIntegrationTest extends IntegrationTest {
-    
-    @Test("集成测试")
-    public void testIntegration() throws Exception {
+class MyIntegrationTest {
+    @Test
+    @Tag("integration")
+    void testIntegration() throws Exception {
         // 运行集成测试
         Process process = new ProcessBuilder("java", "-jar", "app.jar").start();
         int exitCode = process.waitFor();
-        Assert.assertEquals(0, exitCode);
+        org.junit.jupiter.api.Assertions.assertEquals(0, exitCode);
     }
 }
 ```
 
-### 注册测试
+### 让测试进入默认流程
 
-修改 `test.sh` 的 `Run_Unit_Tests()` 或 `Run_Integration_Tests()` 函数：
+如果你新增的是普通单元测试或带 `integration` tag 的集成测试，放进现有测试源码目录后，`./gradlew test` 或 `./gradlew integrationTest` 就会自动拾取。
 
-```bash
-java -cp "${CLASSES_DIR}" \
-    io.github.ygqygq2.byteguard.test.framework.TestRunner \
-    io.github.ygqygq2.byteguard.test.crypto.MyTest \
-    io.github.ygqygq2.byteguard.test.integration.MyIntegrationTest
-```
+## 测试与验证建议
 
-## 脚本规范
-
-遵循 [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html) 和项目规范：
-
-- ✅ 使用 `#!/usr/bin/env bash`
-- ✅ 设置 `set -euo pipefail`
-- ✅ 函数名：`首字母大写_下划线` 格式
-- ✅ 所有变量严格 `local` 化
-- ✅ 使用 `function` 关键字声明
-- ✅ 有 `Main()` 函数作为入口
-- ✅ 常量全大写，使用 `readonly`
-- ✅ 支持 CI 环境检测 (`CI` 环境变量)
+- 优先使用 `./gradlew test`、`./gradlew integrationTest` 和 `./gradlew check`
+- 修改加密链路后，至少补一条单元测试或集成测试
+- 涉及 JAR 结构或 Agent 加载时，优先补集成测试
+- 合并前查看 `build/reports/tests/` 与 `build/reports/jacoco/`
 
 ## 故障排除
 
@@ -194,8 +168,8 @@ java -cp "${CLASSES_DIR}" \
 ls -la build/classes/io/github/ygqygq2/byteguard/
 
 # 重新清理和构建
-./test.sh clean
-./test.sh build
+./gradlew clean
+./gradlew build
 ```
 
 ### 集成测试超时
@@ -217,22 +191,22 @@ cat build/manifest.txt
 
 ## 最佳实践
 
-1. **运行完整测试套件** - 在提交前运行 `./test.sh all`
+1. **运行完整校验** - 在提交前运行 `./gradlew check`
 2. **定期添加测试** - 为新功能添加单元和集成测试
 3. **保持测试独立** - 每个测试应该能独立运行
 4. **使用清晰的命名** - 测试方法名应描述测试内容
-5. **快速反馈** - 单元测试应该快速运行
+5. **优先和 CI 对齐** - 本地尽量使用与工作流一致的 Gradle 任务
 
 ## 维护
 
 ### 添加新的 Java 版本支持
 
-编辑 `.github/workflows/build-and-test.yml`：
+编辑 `.github/workflows/build.yml`：
 
 ```yaml
 strategy:
   matrix:
-    java-version: ['8', '11', '17', '21', '23']  # 添加新版本
+        java: ['21', '23']  # 添加新版本示例
 ```
 
 ### 更新测试框架
@@ -247,6 +221,6 @@ strategy:
 
 ## 相关文档
 
-- [开发指南](../development.md)
-- [项目架构](../architecture.md)
-- [Git 工作流](../.github/copilot-instructions.md)
+- [文档索引](00-index.md)
+- [项目架构](02-architecture.md)
+- [API 参考](03-api-reference.md)

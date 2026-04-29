@@ -20,6 +20,7 @@ public class KeyDerivation {
     private static final String PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256";
     private static final int PBKDF2_ITERATIONS = 100_000; // 10万次迭代
     private static final int KEY_LENGTH = 256; // bits
+    private static final byte HKDF_COUNTER = 0x01;
     
     /**
      * 从密码派生主密钥（使用 PBKDF2）
@@ -69,28 +70,25 @@ public class KeyDerivation {
      * @throws CryptoException 派生失败
      */
     public byte[] deriveClassKey(byte[] masterKey, String className) throws CryptoException {
-        if (masterKey == null || masterKey.length != 32) {
-            throw new CryptoException("Master key must be 32 bytes");
-        }
         if (className == null || className.isEmpty()) {
             throw new CryptoException("Class name cannot be null or empty");
         }
-        
+
         try {
-            // HKDF-Expand 简化实现
-            // 实际是: HMAC-SHA256(masterKey, className || 0x01)
-            byte[] info = className.getBytes(StandardCharsets.UTF_8);
-            byte[] input = Arrays.copyOf(info, info.length + 1);
-            input[input.length - 1] = 0x01;
-            
-            javax.crypto.Mac hmac = javax.crypto.Mac.getInstance("HmacSHA256");
-            javax.crypto.spec.SecretKeySpec keySpec = new javax.crypto.spec.SecretKeySpec(masterKey, "HmacSHA256");
-            hmac.init(keySpec);
-            
-            return hmac.doFinal(input);
-            
+            return deriveContextKey(masterKey, className);
         } catch (Exception e) {
             throw new CryptoException("Failed to derive class key for: " + className, e);
+        }
+    }
+
+    /**
+     * 从主密钥派生元数据完整性校验密钥。
+     */
+    public byte[] deriveMetadataKey(byte[] masterKey) throws CryptoException {
+        try {
+            return deriveContextKey(masterKey, "byteguard-metadata");
+        } catch (Exception e) {
+            throw new CryptoException("Failed to derive metadata key", e);
         }
     }
     
@@ -103,5 +101,24 @@ public class KeyDerivation {
         byte[] salt = new byte[32];
         new java.security.SecureRandom().nextBytes(salt);
         return salt;
+    }
+
+    private byte[] deriveContextKey(byte[] masterKey, String context) throws Exception {
+        if (masterKey == null || masterKey.length != 32) {
+            throw new CryptoException("Master key must be 32 bytes");
+        }
+        if (context == null || context.isEmpty()) {
+            throw new CryptoException("Context cannot be null or empty");
+        }
+
+        byte[] info = context.getBytes(StandardCharsets.UTF_8);
+        byte[] input = Arrays.copyOf(info, info.length + 1);
+        input[input.length - 1] = HKDF_COUNTER;
+
+        javax.crypto.Mac hmac = javax.crypto.Mac.getInstance("HmacSHA256");
+        javax.crypto.spec.SecretKeySpec keySpec = new javax.crypto.spec.SecretKeySpec(masterKey, "HmacSHA256");
+        hmac.init(keySpec);
+
+        return hmac.doFinal(input);
     }
 }

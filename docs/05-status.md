@@ -12,11 +12,8 @@
 - ✅ HKDF 类专用密钥派生 (`KeyDerivation.java`)
 - ✅ 零外部依赖（纯 JDK Crypto API）
 
-#### 2. License 系统
+#### 2. 运行验证支持
 - ✅ License 数据模型 (`License.java`)
-  - TRIAL / STANDARD / ENTERPRISE 三种类型
-  - 机器绑定模式：NONE / OPTIONAL / STRICT
-  - 支持自定义特性列表
 - ✅ RSA-2048 数字签名 (`RSASignature.java`)
 - ✅ License 验证器 (`LicenseValidator.java`)
 - ✅ JSON 序列化/反序列化 (`LicenseSerializer.java`)
@@ -82,18 +79,18 @@
    - [ ] API 文档（JavaDoc）
 
 #### 中优先级
-4. **高级功能**
+4. **核心能力增强**
    - [x] 包选择性加密 (--packages)
    - [x] 排除规则 (--exclude)
-   - [ ] 机器绑定验证
-   - [ ] License 实例数限制
+   - [ ] 运行时验证链路完善
+   - [ ] 授权校验体验优化
 
 5. **工具增强**
 - [x] CLI 进度条与报告输出
    - [x] 本地安装脚本（`scripts/install-cli.sh`）
    - [x] 分发启动脚本（`installDist` 生成 `byteguard-cli` / `byteguard-cli.bat`）
    - [ ] Gradle 插件
-   - [ ] License 密钥对管理工具
+   - [ ] 授权相关工具完善
    - [ ] 解密性能分析工具
 
 #### 低优先级
@@ -103,9 +100,8 @@
    - [ ] 元数据压缩
 
 7. **扩展**
-   - [ ] License 服务器集成
-   - [ ] 云端 License 验证
-   - [ ] 监控和日志系统
+   - [ ] 更多自动化验证能力
+   - [ ] 更完善的观测与日志能力
 
 ## 📈 代码统计
 
@@ -156,17 +152,16 @@ byteguard-maven-plugin/
 ## 🔍 已知问题
 
 - [ ] JavaAgent 尚未完整集成
-- [ ] 机器绑定功能未实现
-- [ ] License 实例数限制未实现
+- [ ] 运行时验证链路仍需继续完善
 - [ ] 缺少单元测试
 
 ## 📝 技术决策记录
 
-### 选择 License 文件而非硬件绑定
+### 选择 License 文件作为当前验证载体
 **原因:** 
 - 用户体验更好（云环境友好）
 - 灵活性高（支持多台机器）
-- 可选机器绑定（三种模式）
+- 更适合当前公开仓库的接入与验证目标
 
 ### 零依赖设计
 **原因:**

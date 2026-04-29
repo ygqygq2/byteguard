@@ -87,9 +87,10 @@ class JarEncryptorTest {
 
             MetadataReader mr = new MetadataReader();
             EncryptionMetadata parsed = mr.read(jf.getInputStream(metaEntry));
-            assertEquals("1.0", parsed.getVersion());
+            assertEquals("1.1", parsed.getVersion());
             assertEquals("AES-256-GCM", parsed.getAlgorithm());
             assertNotNull(parsed.getSalt());
+            assertNotNull(parsed.getMetadataMac(), "Metadata should include integrity MAC");
             assertTrue(parsed.getTotalClasses() > 0);
         }
     }

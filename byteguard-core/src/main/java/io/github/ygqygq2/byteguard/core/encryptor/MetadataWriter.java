@@ -22,12 +22,26 @@ public class MetadataWriter {
      * @return JSON 字符串（UTF-8）
      */
     public String toJson(EncryptionMetadata metadata) {
+        return buildJson(metadata, true);
+    }
+
+    /**
+     * 生成不含 metadataMac 字段的规范化 JSON，供完整性校验使用。
+     */
+    public String toCanonicalJson(EncryptionMetadata metadata) {
+        return buildJson(metadata, false);
+    }
+
+    private String buildJson(EncryptionMetadata metadata, boolean includeMac) {
         StringBuilder sb = new StringBuilder();
         sb.append("{\n");
         appendField(sb, "version", metadata.getVersion(), true);
         appendField(sb, "algorithm", metadata.getAlgorithm(), true);
         appendField(sb, "keyDerivation", metadata.getKeyDerivation(), true);
         appendField(sb, "salt", Base64Utils.encode(metadata.getSalt()), true);
+        if (includeMac && metadata.getMetadataMac() != null) {
+            appendField(sb, "metadataMac", Base64Utils.encode(metadata.getMetadataMac()), true);
+        }
         appendLongField(sb, "encryptedAt", metadata.getEncryptedAt());
         appendIntField(sb, "totalClasses", metadata.getTotalClasses());
         appendClassesField(sb, metadata.getClasses());

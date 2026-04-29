@@ -47,11 +47,10 @@ class ClassEncryptorTest {
     @Test
     void shouldProduceDifferentKeysPerClass() throws CryptoException {
         byte[] original = "class body".getBytes();
-        EncryptedClass ecA = encryptor.encrypt("com.example.ClassA", original);
+        encryptor.encrypt("com.example.ClassA", original);
         EncryptedClass ecB = encryptor.encrypt("com.example.ClassB", original);
 
-        // Different class keys → different ciphertexts (even same plaintext)
-        // We can't compare directly without IV, but we can verify cross-decryption fails
+        // Different class keys + AAD 绑定类名上下文 → 交叉解密失败
         assertThrows(CryptoException.class,
             () -> encryptor.decrypt("com.example.ClassA", ecB.getEncryptedBytes()));
     }

@@ -278,7 +278,7 @@ Fixes #45
 ## 需要帮助？
 
 - 💬 [GitHub Discussions](https://github.com/ygqygq2/byteguard/discussions)
-- 📧 Email: [your-email@example.com]
+- 📧 Email: [ygqygq2@qq.com](mailto:ygqygq2@qq.com)
 - 🐛 [GitHub Issues](https://github.com/ygqygq2/byteguard/issues)
 
 ## License
